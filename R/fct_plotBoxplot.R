@@ -60,8 +60,6 @@ plotBoxplot <- function(slick, PI=NULL, type=c('boxplot', 'violin', 'both', 'all
     slick <- FilterSlick(slick, OMs=OMs, plot='Boxplot')
   }
 
-  Mean <- OM <- NULL # CRAN checks
-
   if (!methods::is(slick, 'Slick'))
     cli::cli_abort('`slick` must be an object of class `Slick`')
 
@@ -121,14 +119,13 @@ plotBoxplot <- function(slick, PI=NULL, type=c('boxplot', 'violin', 'both', 'all
 
 
   if (!byOM) {
-    box_df <- df |> dplyr::group_by(Sim, MP, PI) |>
-      dplyr::mutate(Mean=mean(value, na.rm=TRUE)) |>
+    box_df <- df |>
       dplyr::group_by(MP, PI) |>
-      dplyr::summarize(m=median(Mean, na.rm=TRUE),
-                       low1=quantile(Mean, 0.25, na.rm=TRUE),
-                       upp1=quantile(Mean, 0.75, na.rm=TRUE),
-                       low2=min(Mean, na.rm=TRUE),
-                       upp2=max(Mean, na.rm=TRUE))
+      dplyr::summarize(m=median(value, na.rm=TRUE),
+                       low1=quantile(value, 0.25, na.rm=TRUE),
+                       upp1=quantile(value, 0.75, na.rm=TRUE),
+                       low2=min(value, na.rm=TRUE),
+                       upp2=max(value, na.rm=TRUE))
     box_df$MP <- factor(box_df$MP, ordered=TRUE, levels=MP_lab)
     box_df$PI <- factor(box_df$PI, ordered=TRUE, levels=PI_names)
   } else {
