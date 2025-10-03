@@ -60,10 +60,53 @@ plotQuilt <- function(slick,
   if (!chk@complete)
     cli::cli_abort('`Quilt` in this `Slick` object is incomplete. Use  {.code Check(slick)}')
 
-  # mean over OMs
-  Values <- Value(quilt) |>
-    apply(2:3, mean, na.rm=TRUE) |>
-    signif(signif)
+  quilt_values <- Value(quilt)
+
+  value_df <- as.data.frame.table(quilt_values, responseName = "value")
+
+  mp_col <- if ("MP" %in% names(value_df)) "MP" else names(value_df)[2]
+  pi_col <- if ("PI" %in% names(value_df)) "PI" else names(value_df)[3]
+
+  mp_levels <- dimnames(quilt_values)[[2]]
+  if (is.null(mp_levels)) {
+    mp_levels <- as.character(unique(value_df[[mp_col]]))
+  } else {
+    mp_levels <- as.character(mp_levels)
+  }
+
+  pi_levels <- dimnames(quilt_values)[[3]]
+  if (is.null(pi_levels)) {
+    pi_levels <- as.character(unique(value_df[[pi_col]]))
+  } else {
+    pi_levels <- as.character(pi_levels)
+  }
+
+  data_to_agg <- data.frame(
+    MP = factor(as.character(value_df[[mp_col]]), levels = mp_levels),
+    PI = factor(as.character(value_df[[pi_col]]), levels = pi_levels),
+    value = value_df$value
+  )
+
+  stat_fun <- function(x) {
+    res <- mean(x, na.rm = TRUE)
+    if (is.nan(res)) NA_real_ else res
+  }
+
+  agg_df <- stats::aggregate(value ~ MP + PI,
+                             data = data_to_agg,
+                             FUN = stat_fun)
+
+  Values <- matrix(NA_real_,
+                   nrow = length(mp_levels),
+                   ncol = length(pi_levels),
+                   dimnames = list(mp_levels, pi_levels))
+
+  row_idx <- match(as.character(agg_df$MP), mp_levels)
+  col_idx <- match(as.character(agg_df$PI), pi_levels)
+
+  Values[cbind(row_idx, col_idx)] <- agg_df$value
+
+  Values <- signif(Values, signif)
 
   if (all(is.na(Values))) {
     return(NULL)
